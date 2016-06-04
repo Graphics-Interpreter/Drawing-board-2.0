@@ -1,0 +1,3 @@
+[submodule "PriorityQueue"]
+	path = PriorityQueue
+	url = git@github.com:Lw-Cui/PriorityQueue.git
