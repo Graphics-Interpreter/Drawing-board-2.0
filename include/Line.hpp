@@ -4,13 +4,6 @@
 using namespace std;
 using namespace sf;
 
-namespace {
-	std::vector<sf::Vertex> FirstQ(bool Xaxies, sf::Vector2i startPosition,
-	    sf::Vector2i endPosition);
-	std::vector<sf::Vertex> FirstQ
-	    (sf::Vector2i startPosition, sf::Vector2i endPosition);
-}
-
 void FillPolygon(sf::RenderTarget& target, const std::vector<sf::Vector2i>&);
 
 class Line: public sf::Drawable {
