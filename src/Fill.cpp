@@ -51,7 +51,8 @@ void FillPolygon(sf::RenderTarget& target, const std::vector<sf::Vector2i> &poin
     		target.draw(Line(
     			sf::Vector2i(last->posX + last->delta * (lineY - last->startY), lineY),
 	    		sf::Vector2i(ite->posX + ite->delta * (lineY - ite->startY), lineY)));
-			last = ite; ite++;
+			ite++; 
+			if (ite != current.end()) {last = ite; ite++;}
 
     	}
     }
