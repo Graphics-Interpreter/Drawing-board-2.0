@@ -27,19 +27,20 @@ int main()
                     points.push_back(pressPostion);
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
                     valid = false; points.push_back(points.front());
-                    // TODO
                 }
         }
 
         // clear the window with black color
         window.clear(sf::Color::White);
+        for (int i = 0; i + 1 < points.size(); i++)
+            window.draw(Line(points[i], points[i + 1]));
         if (valid) {
             localPosition = sf::Mouse::getPosition(window); 
             if (!points.empty())
                 window.draw(Line(points.back(), localPosition));
+        } else if (!points.empty()) {
+            FillPolygon(window, points);
         }
-        for (int i = 0; i + 1 < points.size(); i++)
-            window.draw(Line(points[i], points[i + 1]));
         // end the current frame
         window.display();
     }

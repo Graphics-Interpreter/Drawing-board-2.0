@@ -45,13 +45,13 @@ void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 
     if (deltaY > 0 && deltaX > 0) {
         vertices = FirstQ(startPosition, endPosition);
-    } else if (deltaY > 0 && deltaX < 0) {
+    } else if (deltaY >= 0 && deltaX <= 0) {
         sf::Vector2i start = startPosition, end = endPosition;
         end.x = -end.x;
         start.x = -start.x;
         vertices = FirstQ(start, end);
         for (auto &v: vertices) v.position.x = -v.position.x;
-    } else if (deltaX > 0 && deltaY < 0) {
+    } else if (deltaX >= 0 && deltaY <= 0) {
         sf::Vector2i start = startPosition, end = endPosition;
         end.y = -end.y;
         start.y = -start.y;
