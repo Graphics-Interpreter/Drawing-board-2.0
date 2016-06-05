@@ -17,26 +17,9 @@ namespace {
         }
 	    return std::move(vec2);
 	}
-
-	std::vector<sf::Vector2i> FirstQ
-	    (sf::Vector2i startPosition, sf::Vector2i endPosition) {
-	    int deltaX = endPosition.x - startPosition.x;
-	    int deltaY = endPosition.y - startPosition.y;
-	    if (deltaX >= deltaY) {
-	    	return std::move(DrawLine(startPosition, endPosition));
-	    } else {
-	    	auto reverse = [](auto &point) 
-		    	{auto tmp = point.x; point.x = point.y; point.y = tmp; };
-		    reverse(startPosition); reverse(endPosition);
-	    	auto v = std::move(DrawLine(startPosition, endPosition));
-	    	for (auto &p :v) reverse(p);
-	    	return std::move(v);
-	    }
-	}
 }
 
 void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
-    std::vector<sf::Vector2i> vec2;
     int deltaX = endPosition.x - startPosition.x;
     int deltaY = endPosition.y - startPosition.y;
 
@@ -50,10 +33,16 @@ void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     else
         Op = [](sf::Vector2i v)->sf::Vector2i{v = -v; return v;};
 
-    sf::Vector2i start = Op(startPosition), end = Op(endPosition);
-    vec2 = FirstQ(start, end);
+    std::function<sf::Vector2i(sf::Vector2i)> reverse;
+    if (abs(deltaX) >= abs(deltaY))
+    	reverse = [](Vector2i v)->sf::Vector2i {return v;};
+    else
+    	reverse = [](Vector2i v)->sf::Vector2i {std::swap(v.x, v.y); return v;};
+
+	auto vec2 = DrawLine(reverse(Op(startPosition)), reverse(Op(endPosition)));
+
     std::vector<sf::Vertex> vertex;
     for (auto &v: vec2) 
-    	vertex.push_back(sf::Vertex{sf::Vector2f{Op(v)}, sf::Color::Red});
+    	vertex.push_back(sf::Vertex{sf::Vector2f{Op(reverse(v))}, sf::Color::Red});
     target.draw(&vertex[0], vertex.size(), sf::Points);
 }
