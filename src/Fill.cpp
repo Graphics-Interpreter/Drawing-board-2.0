@@ -22,7 +22,7 @@ namespace {
 		return Edge{smallp.x, (bigp.x - smallp.x) / (bigp.y - smallp.y), smallp.y, bigp.y};
 	}
 
-    inline float round(float f) {
+    inline float round(float f) { 
         return static_cast<float>(static_cast<int>(f + 0.5));
     }
 }
@@ -49,10 +49,10 @@ void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
         if (current.empty()) continue;
         auto ite = ++current.begin(), last = current.begin();
         while (ite != current.end()) {
-            last->posX += last->delta; ite->posX += ite->delta;
             target.draw(Line(
                 sf::Vertex{sf::Vector2f(round(last->posX), lineY), sf::Color::Red},
                 sf::Vertex{sf::Vector2f(round(ite->posX), lineY), sf::Color::Red}));
+            last->posX += last->delta; ite->posX += ite->delta;
             ite++; if (ite != current.end()) {last = ite; ite++;}
         }
     }
