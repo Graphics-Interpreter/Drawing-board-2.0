@@ -8,8 +8,9 @@ int main()
 {
     // create the window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Computer Graphics");
-    std::vector<sf::Vector2i> points;
-    sf::Vector2i pressPostion, localPosition;
+    // current point set
+    sf::VertexArray points;
+    // finish?
     bool valid = false;
     // run the program as long as the window is open
     while (window.isOpen()) {
@@ -17,31 +18,31 @@ int main()
         sf::Event event;
         while (window.pollEvent(event)) {
             // "close requested" event: we close the window
-            if (event.type == sf::Event::Closed)
+            if (event.type == sf::Event::Closed) {
                 window.close();
-            if (event.type == sf::Event::MouseButtonPressed)
+            } else if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Left) {
-                    if (!valid) points.clear(); valid = true; 
-                    pressPostion.x = event.mouseButton.x;
-                    pressPostion.y = event.mouseButton.y;
-                    points.push_back(pressPostion);
+                    if (!valid) points.clear(); 
+                    valid = true; 
+                    points.append(makeVertex(sf::Vector2i{event.mouseButton.x, event.mouseButton.y}));
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
-                    valid = false; points.push_back(points.front());
+                    valid = false; points.append(points[0]);
                 }
+            }
         }
 
         // clear the window with black color
         window.clear(sf::Color::White);
-        for (int i = 0; i + 1 < points.size(); i++)
-            window.draw(Line(points[i], points[i + 1]));
-        if (valid) {
-            localPosition = sf::Mouse::getPosition(window); 
-            if (!points.empty())
-                window.draw(Line(points.back(), localPosition));
-        } else if (!points.empty()) {
-            FillPolygon(window, points);
+        if (points.getVertexCount()) {
+            for (std::size_t i = 0; i + 1 < points.getVertexCount(); i++)
+                window.draw(Line(points[i], points[i + 1]));
+            if (valid)
+                window.draw(Line{
+                   points[points.getVertexCount() - 1],
+                   makeVertex(sf::Mouse::getPosition(window))});
+            else
+                window.draw(Polygon{points});
         }
-        // end the current frame
         window.display();
     }
     return 0;

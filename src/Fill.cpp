@@ -8,52 +8,52 @@ using namespace sf;
 namespace {
 	struct Edge {
 	public:
-		Edge(int x, double d, int sy, int y)
-			:posX(x), delta(d), startY(sy), endY(y) {}
-		int posX; int endY;
-		int startY;
-		double delta;
+		Edge(float x, float d, float sy, float y)
+			:posX(x), startY(sy), endY(y), delta(d) {}
+        float posX; // current X 
+		float startY, endY;
+		float delta;
 	};
 
-	// small.y is small
-	Edge GetEdge(const sf::Vector2i &small, const sf::Vector2i &bigger) {
-		return Edge{small.x, (double)(bigger.x - small.x) / (bigger.y - small.y),
-			small.y, bigger.y};
+	// v1.y is v1
+	Edge GetEdge(const sf::Vertex &v1, const sf::Vertex &v2) {
+        auto smallp = v1.position, bigp = v2.position;
+        if (smallp.y > bigp.y) swap(smallp, bigp);
+		return Edge{smallp.x, (bigp.x - smallp.x) / (bigp.y - smallp.y), smallp.y, bigp.y};
 	}
+
+    inline float round(float f) {
+        return static_cast<float>(static_cast<int>(f + 0.5));
+    }
 }
 
-void FillPolygon(sf::RenderTarget& target, const std::vector<sf::Vector2i> &points) {
-	std::map<int, list<Edge>> edgeTable;
-    int lineEnd = 0;
-    for (int i = 0; i + 1 < points.size(); i++)
-    	if (points[i].y < points[i + 1].y) {
-    		edgeTable[points[i].y].push_back(GetEdge(points[i], points[i + 1]));
-    		lineEnd = max(lineEnd, points[i + 1].y);
-    	} else {
-    		edgeTable[points[i + 1].y].push_back(GetEdge(points[i + 1], points[i]));
-    		lineEnd = max(lineEnd, points[i].y);
-    	}
+void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    std::map<float, list<Edge>> edgeTable;
+    float lineEnd = 0;
+    for (std::size_t i = 0; i + 1 < vertex.getVertexCount(); i++) {
+        auto edge = GetEdge(vertex[i], vertex[i + 1]);
+        edgeTable[edge.startY].push_back(edge);
+        lineEnd = max(lineEnd, edge.endY);
+    }
 
     std::list<Edge> current;
     for (int lineY = edgeTable.begin()->first; lineY < lineEnd; lineY++) {
-    	for (auto ite = current.begin(); ite != current.end();) {
-    		//ite->posX = ite->delta * (lineY - ite->startY);
-    		if (ite->endY <= lineY) ite = current.erase(ite);
-	    	else ++ite;
-    	}
-    	if (edgeTable.count(lineY))
-	    	for (auto &edge: edgeTable[lineY]) current.push_back(edge);
-		auto comp = [](const Edge &e1, const Edge &e2)->bool {return e1.posX < e2.posX;};
-    	current.sort(comp);
-    	if (current.empty()) continue;
-    	auto ite = ++current.begin(), last = current.begin();
-    	while (ite != current.end()) {
-    		target.draw(Line(
-    			sf::Vector2i(last->posX + last->delta * (lineY - last->startY), lineY),
-	    		sf::Vector2i(ite->posX + ite->delta * (lineY - ite->startY), lineY)));
-			ite++; 
-			if (ite != current.end()) {last = ite; ite++;}
-
-    	}
+        for (auto ite = current.begin(); ite != current.end();) {
+            if (ite->endY <= lineY) ite = current.erase(ite);
+            else ++ite;
+        }
+        if (edgeTable.count(lineY))
+            for (auto &edge: edgeTable[lineY]) current.push_back(edge);
+        auto comp = [](const Edge &e1, const Edge &e2)->bool {return e1.posX < e2.posX;};
+        current.sort(comp);
+        if (current.empty()) continue;
+        auto ite = ++current.begin(), last = current.begin();
+        while (ite != current.end()) {
+            last->posX += last->delta; ite->posX += ite->delta;
+            target.draw(Line(
+                sf::Vertex{sf::Vector2f(round(last->posX), lineY), sf::Color::Red},
+                sf::Vertex{sf::Vector2f(round(ite->posX), lineY), sf::Color::Red}));
+            ite++; if (ite != current.end()) {last = ite; ite++;}
+        }
     }
 }
