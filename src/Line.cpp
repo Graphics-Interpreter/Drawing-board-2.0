@@ -42,6 +42,6 @@ void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 	auto vec2 = DrawLine(reverse(Op(startPosition.position)), reverse(Op(endPosition.position)));
 
     sf::VertexArray vertex;
-    for (auto &v: vec2) vertex.append(sf::Vertex{Op(reverse(v)), sf::Color::Red});
+    for (auto &v: vec2) vertex.append(sf::Vertex{Op(reverse(v)), startPosition.color});
     target.draw(vertex);
 }

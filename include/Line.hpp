@@ -4,12 +4,6 @@
 using namespace std;
 using namespace sf;
 
-inline sf::Vertex makeVertex(const sf::Vector2i &v2, 
-	const sf::Color color = sf::Color::Red) {
-	return sf::Vertex(sf::Vector2f{
-		static_cast<float>(v2.x), static_cast<float>(v2.y)}, color);
-}
-
 class Line: public sf::Drawable {
 public:
     Line(const sf::Vertex &s, const sf::Vertex &e)
@@ -23,7 +17,12 @@ private:
 class Polygon: public sf::Drawable {
 public:
 	Polygon(sf::VertexArray &va):vertex{va} {}
+	Polygon& SetTransform(const Transform &trans);
+	Polygon& cutBy(const sf::VertexArray &points);
+	sf::Vector2f getCenter();
 private:
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 	sf::VertexArray vertex;
+	sf::Transform trans;
+	sf::VertexArray intersection;
 };

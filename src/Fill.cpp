@@ -25,9 +25,54 @@ namespace {
     inline float round(float f) { 
         return static_cast<float>(static_cast<int>(f + 0.5));
     }
+
+    float crossProduct(sf::Vector2f v, sf::Vector2f w) {
+        return v.x * w.y - v.y * w.x;
+    }
+
+    sf::Vector2f intersect(sf::Vector2f p, sf::Vector2f r,
+        sf::Vector2f q, sf::Vector2f s) {
+        if (!crossProduct(r, s)) return sf::Vector2f{-1, -1};
+        auto t = crossProduct((q - p), s) / crossProduct(r, s);
+        auto u = crossProduct((q - p), r) / crossProduct(r, s);
+        if (0 <= t && t <= 1 && 0 <= u && u <= 1)
+            return sf::Vector2f{p.x + t * r.x, p.y + t * r.y};
+        return sf::Vector2f{-1, -1};    
+    }
+}
+
+Polygon& Polygon::cutBy(const sf::VertexArray &points) {
+    for (std::size_t i = 0; i + 1 < vertex.getVertexCount(); i++)
+        for (std::size_t j = 0; j + 1 < points.getVertexCount(); j++) {
+            auto point = intersect(vertex[i].position, vertex[i + 1].position - vertex[i].position,
+                points[j].position, points[j + 1].position - points[j].position);
+            if (point.x != -1 && point.y != -1) {
+                //cout << point.x << " " << point.y << endl;
+                intersection.append(sf::Vertex{point, sf::Color::Black});
+            }
+        }
+    intersection.setPrimitiveType(sf::TrianglesFan);
+    return *this;
+}
+
+sf::Vector2f Polygon::getCenter() {
+    sf::Vector2f center;
+    for (std::size_t i = 0; i < vertex.getVertexCount(); i++)
+        center += vertex[i].position;
+    center.x /= vertex.getVertexCount();
+    center.y /= vertex.getVertexCount();
+    return center;
+}
+
+Polygon& Polygon::SetTransform(const Transform &trans) {
+    for (std::size_t i = 0; i < vertex.getVertexCount(); i++) {
+        Vector2f &pos = vertex[i].position;
+        pos = trans.transformPoint(pos.x, pos.y);
+    }
 }
 
 void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+
     std::map<float, list<Edge>> edgeTable;
     float lineEnd = 0;
     for (std::size_t i = 0; i + 1 < vertex.getVertexCount(); i++) {
@@ -56,4 +101,5 @@ void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
             ite++; if (ite != current.end()) {last = ite; ite++;}
         }
     }
+    //target.draw(intersection);
 }
