@@ -16,13 +16,14 @@ private:
 
 class Polygon: public sf::Drawable {
 public:
-	Polygon(sf::VertexArray &va):vertex{va} {}
+	Polygon(const std::vector<sf::Vertex> &va):vertex{va} {}
+	Polygon cutBy(const std::vector<sf::Vertex> &points);
 	Polygon& SetTransform(const Transform &trans);
-	Polygon& cutBy(const sf::VertexArray &points);
 	sf::Vector2f getCenter();
 private:
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-	sf::VertexArray vertex;
-	sf::Transform trans;
-	sf::VertexArray intersection;
+	std::vector<sf::Vertex> vertex;
 };
+
+const sf::Color Default = sf::Color::Red;
+const sf::Color Scissor = sf::Color::Blue;

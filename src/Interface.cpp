@@ -10,13 +10,9 @@ int main()
 {
     // create the window
     sf::RenderWindow window(sf::VideoMode(800, 600), "Computer Graphics");
-    // current point set
-    sf::VertexArray points;
-    // current position
-    sf::Vector2i lastPosition;
-    // Polygon shape
+    std::vector<sf::Vertex> points;
     std::shared_ptr<Polygon> ptr;
-    // run the program as long as the window is open
+    sf::Color color;
     while (window.isOpen()) {
         // check all the window's events that were triggered since the last iteration of the loop
         sf::Event event;
@@ -26,15 +22,14 @@ int main()
                 window.close();
             } else if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Left) {
-                    auto color = sf::Color::Red;
-                    if (ptr) color = sf::Color::Blue;
-                    points.append(
+                    if (ptr) color = Scissor; else color = Default;
+                    points.push_back(
                         sf::Vertex{sf::Vector2f{event.mouseButton.x, event.mouseButton.y}, color});
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
-                    points.append(points[0]);
-                    if (!ptr) {ptr = make_shared<Polygon>(points); points.clear();}
-                    else {ptr->cutBy(points);}
-                    lastPosition = sf::Mouse::getPosition(window);
+                    points.push_back(points.front());
+                    if (!ptr) ptr = make_shared<Polygon>(points);
+                    else ptr = make_shared<Polygon>(ptr->cutBy(points));
+                    points.clear();
                 } 
             }
         }
@@ -42,14 +37,13 @@ int main()
         // clear the window with black color
         window.clear(sf::Color::White);
         if (ptr) window.draw(*ptr);
-        for (std::size_t i = 0; i + 1 < points.getVertexCount(); i++)
+        for (std::size_t i = 0; i + 1 < points.size(); i++)
             window.draw(Line(points[i], points[i + 1]));
 
         sf::Vector2f currentPosition{sf::Mouse::getPosition(window)};
-        auto color = sf::Color::Red;
-        if (ptr) color = sf::Color::Blue;
-        if (points.getVertexCount())
-            window.draw(Line{points[points.getVertexCount() - 1], sf::Vertex{currentPosition, color}});
+        if (ptr) color = Scissor; else color = Default; 
+        if (!points.empty())
+            window.draw(Line{points.back(), sf::Vertex{currentPosition, color}});
         window.display();
     }
     return 0;

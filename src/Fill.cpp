@@ -44,48 +44,57 @@ namespace {
 
     bool Collinear(sf::Vector2f p, sf::Vector2f r, sf::Vector2f point) {
         auto deltaY = point.y - p.y, deltaX = point.x - p.x;
-        cout << std::abs(r.x * deltaY - r.y * deltaX) << endl;
-        cout << deltaX / r.x << endl;
-        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.02
+        //cout << std::abs(r.x * deltaY - r.y * deltaX) << endl;
+        //cout << deltaX / r.x << endl;
+        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.05
             && 0 < deltaY / r.y && deltaY / r.y < 1
             && 0 < deltaX / r.x && deltaX / r.x < 1) return true;
         else return false;
     }
 }
 
-Polygon& Polygon::cutBy(const sf::VertexArray &points) {
-    for (std::size_t vite = 0; vite + 1 < vertex.getVertexCount(); vite++)
-        for (std::size_t pite = 0; pite + 1 < points.getVertexCount(); pite++) {
+Polygon Polygon::cutBy(const std::vector<sf::Vertex> &scissor) {
+    std::vector<sf::Vertex> intersection;
+    for (std::size_t vite = 0; vite + 1 < vertex.size(); vite++)
+        for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
             auto vbeg = vertex[vite].position, vdelta = vertex[vite + 1].position - vertex[vite].position;
-            auto pbeg = points[pite].position, pdelta = points[pite + 1].position - points[pite].position;
+            auto pbeg = scissor[pite].position, pdelta = scissor[pite + 1].position - scissor[pite].position;
             auto point = intersect(vbeg, vdelta, pbeg, pdelta);
             if (point.x != -1 && point.y != -1) {
-                cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
-                intersection.append(sf::Vertex{point, sf::Color::Black});
+                //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
+                point.x = ::round(point.x); point.y = ::round(point.y);
+                intersection.push_back(sf::Vertex{point, sf::Color::Black});
             }
         }
-    intersection.setPrimitiveType(sf::TrianglesFan);
-    std::list<sf::Vertex> origin{&vertex[0], &vertex[vertex.getVertexCount() - 1]};
-    std::list<sf::Vertex> scissor{&points[0], &points[points.getVertexCount() - 1]};
-    //for (size_t i = 0; i < intersection; i++) {
-        //for (size_t oite = 0; oite + 1 < origin.getVertexCount(); oite++)
 
-        //for (size_t site = 0; site + 1 < origin.getVertexCount(); site++)
-    //}
-    return *this;
+    std::list<sf::Vertex> origin{vertex.begin(), vertex.end()};
+    //std::list<sf::Vertex> shape{scissor.begin(), scissor.end()};
+    for (size_t i = 0; i < intersection.size(); i++) {
+        auto end = origin.begin(); auto beg = end++;
+        while (end != origin.end()) {
+            if (Collinear(beg->position, end->position - beg->position, intersection[i].position)) {
+                origin.insert(end, sf::Vertex{intersection[i].position, Default});
+                break;
+            } else {
+                beg++; end++;
+            }
+        }
+    }
+    std::vector<sf::Vertex> v{origin.begin(), origin.end()};
+    return Polygon{v};
 }
 
 sf::Vector2f Polygon::getCenter() {
     sf::Vector2f center;
-    for (std::size_t i = 0; i < vertex.getVertexCount(); i++)
+    for (std::size_t i = 0; i < vertex.size(); i++)
         center += vertex[i].position;
-    center.x /= vertex.getVertexCount();
-    center.y /= vertex.getVertexCount();
+    center.x /= vertex.size();
+    center.y /= vertex.size();
     return center;
 }
 
 Polygon& Polygon::SetTransform(const Transform &trans) {
-    for (std::size_t i = 0; i < vertex.getVertexCount(); i++) {
+    for (std::size_t i = 0; i < vertex.size(); i++) {
         Vector2f &pos = vertex[i].position;
         pos = trans.transformPoint(pos.x, pos.y);
     }
@@ -93,10 +102,12 @@ Polygon& Polygon::SetTransform(const Transform &trans) {
 }
 
 void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    for (std::size_t i = 0; i + 1 < vertex.size(); i++)
+        target.draw(Line(vertex[i], vertex[i + 1]));
 
     std::map<float, list<Edge>> edgeTable;
     float lineEnd = 0;
-    for (std::size_t i = 0; i + 1 < vertex.getVertexCount(); i++) {
+    for (std::size_t i = 0; i + 1 < vertex.size(); i++) {
         auto edge = GetEdge(vertex[i], vertex[i + 1]);
         edgeTable[edge.startY].push_back(edge);
         lineEnd = max(lineEnd, edge.endY);
@@ -113,14 +124,13 @@ void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
         auto comp = [](const Edge &e1, const Edge &e2)->bool {return e1.posX < e2.posX;};
         current.sort(comp);
         if (current.empty()) continue;
-        auto ite = ++current.begin(), last = current.begin();
-        while (ite != current.end()) {
+        auto end = current.begin(); auto beg = end++;
+        while (end != current.end()) {
             target.draw(Line(
-                sf::Vertex{sf::Vector2f(::round(last->posX), lineY), sf::Color::Red},
-                sf::Vertex{sf::Vector2f(::round(ite->posX), lineY), sf::Color::Red}));
-            last->posX += last->delta; ite->posX += ite->delta;
-            ite++; if (ite != current.end()) {last = ite; ite++;}
+                sf::Vertex{sf::Vector2f(::round(beg->posX), lineY), Default},
+                sf::Vertex{sf::Vector2f(::round(end->posX), lineY), Default}));
+            beg->posX += beg->delta; end->posX += end->delta;
+            end++; if (end != current.end()) {beg = end; end++;}
         }
     }
-    target.draw(intersection);
 }
