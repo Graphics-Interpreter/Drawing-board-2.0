@@ -24,7 +24,7 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left) {
                     if (ptr) color = Scissor; else color = Default;
                     points.push_back(
-                        sf::Vertex{sf::Vector2f{event.mouseButton.x, event.mouseButton.y}, color});
+                        sf::Vertex{sf::Vector2f{(float)event.mouseButton.x, (float)event.mouseButton.y}, color});
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
                     points.push_back(points.front());
                     if (!ptr) ptr = make_shared<Polygon>(points);

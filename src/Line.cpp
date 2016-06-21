@@ -1,5 +1,7 @@
 #include <Line.hpp>
 #include <functional>
+using namespace std;
+using namespace sf;
 
 namespace {
 	vector<sf::Vector2f> DrawLine(sf::Vector2f startPosition, sf::Vector2f endPosition) {

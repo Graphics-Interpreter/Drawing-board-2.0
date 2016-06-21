@@ -1,7 +1,8 @@
 #include <list>
 #include <iostream>
-#include <math.h>
 #include <map>
+#include <set>
+#include <math.h>
 #include <Line.hpp>
 
 using namespace std;
@@ -32,7 +33,7 @@ namespace {
         return v.x * w.y - v.y * w.x;
     }
 
-    sf::Vector2f intersect(sf::Vector2f p, sf::Vector2f r,
+    sf::Vector2f intersectionOf(sf::Vector2f p, sf::Vector2f r,
         sf::Vector2f q, sf::Vector2f s) {
         if (!crossProduct(r, s)) return sf::Vector2f{-1, -1};
         auto t = crossProduct((q - p), s) / crossProduct(r, s);
@@ -51,37 +52,47 @@ namespace {
             && 0 < deltaX / r.x && deltaX / r.x < 1) return true;
         else return false;
     }
+
 }
 
-Polygon Polygon::cutBy(const std::vector<sf::Vertex> &scissor) {
-    std::vector<sf::Vertex> intersection;
-    for (std::size_t vite = 0; vite + 1 < vertex.size(); vite++)
-        for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
-            auto vbeg = vertex[vite].position, vdelta = vertex[vite + 1].position - vertex[vite].position;
-            auto pbeg = scissor[pite].position, pdelta = scissor[pite + 1].position - scissor[pite].position;
-            auto point = intersect(vbeg, vdelta, pbeg, pdelta);
-            if (point.x != -1 && point.y != -1) {
-                //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
-                point.x = ::round(point.x); point.y = ::round(point.y);
-                intersection.push_back(sf::Vertex{point, sf::Color::Black});
-            }
-        }
+//void Polygon::setSegment(std::map<pair<sf::Vertex, sf::Vertex>, Polygon::VArray> &segment, 
+  //  const std::set<sf::Vertex, Vfun> &intersection) {
+//}
 
+Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, const std::set<sf::Vertex, Vfunc> &intersection) {
     std::list<sf::Vertex> origin{vertex.begin(), vertex.end()};
-    //std::list<sf::Vertex> shape{scissor.begin(), scissor.end()};
-    for (size_t i = 0; i < intersection.size(); i++) {
+    //for (size_t i = 0; i < intersection.size(); i++) {
+    for (const auto &v: intersection) {
         auto end = origin.begin(); auto beg = end++;
         while (end != origin.end()) {
-            if (Collinear(beg->position, end->position - beg->position, intersection[i].position)) {
-                origin.insert(end, sf::Vertex{intersection[i].position, Default});
+            if (Collinear(beg->position, end->position - beg->position, v.position)) {
+                origin.insert(end, sf::Vertex{v.position, Default});
                 break;
             } else {
                 beg++; end++;
             }
         }
     }
-    std::vector<sf::Vertex> v{origin.begin(), origin.end()};
-    return Polygon{v};
+    return Polygon::VArray{origin.begin(), origin.end()};
+}
+
+
+Polygon Polygon::cutBy(const VArray &scissor) {
+    std::set<sf::Vertex, Vfunc> intersection(comp);
+    for (std::size_t vite = 0; vite + 1 < vertex.size(); vite++)
+        for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
+            auto vbeg = vertex[vite].position, vdelta = vertex[vite + 1].position - vertex[vite].position;
+            auto pbeg = scissor[pite].position, pdelta = scissor[pite + 1].position - scissor[pite].position;
+            auto point = intersectionOf(vbeg, vdelta, pbeg, pdelta);
+            if (point.x != -1 && point.y != -1) {
+                //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
+                point.x = ::round(point.x); point.y = ::round(point.y);
+                intersection.insert(sf::Vertex{point, Intersection});
+            }
+        }
+    //std::map<pair<sf::Vertex, sf::Vertex>, std::vector<sf::Vertex>> segment[2];
+    std::map<pair<sf::Vertex, sf::Vertex>, VArray> segment[2];
+    return Polygon{insertInto(scissor, intersection)};
 }
 
 sf::Vector2f Polygon::getCenter() {
