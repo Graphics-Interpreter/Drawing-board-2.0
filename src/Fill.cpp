@@ -25,8 +25,8 @@ namespace {
 		return Edge{smallp.x, (bigp.x - smallp.x) / (bigp.y - smallp.y), smallp.y, bigp.y};
 	}
 
-    inline float round(float f) { 
-        return static_cast<float>(static_cast<int>(f + 0.5));
+    inline sf::Vector2f round(const sf::Vector2f &p) { 
+        return sf::Vector2f{(float)(int)(p.x + 0.5), (float)(int)(p.y + 0.5)};
     }
 
     float crossProduct(sf::Vector2f v, sf::Vector2f w) {
@@ -55,9 +55,13 @@ namespace {
 
 }
 
-//void Polygon::setSegment(std::map<pair<sf::Vertex, sf::Vertex>, Polygon::VArray> &segment, 
-  //  const std::set<sf::Vertex, Vfun> &intersection) {
-//}
+std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin, 
+    const std::set<sf::Vertex, Vfunc> &intersection) {
+    for (auto &v: origin) {
+        origin.push_back(v);
+        if (intersection.count(sf::Vertex{v.position, Intersection})) break;
+    }
+}
 
 Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, const std::set<sf::Vertex, Vfunc> &intersection) {
     std::list<sf::Vertex> origin{vertex.begin(), vertex.end()};
@@ -66,14 +70,13 @@ Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, const std::se
         auto end = origin.begin(); auto beg = end++;
         while (end != origin.end()) {
             if (Collinear(beg->position, end->position - beg->position, v.position)) {
-                origin.insert(end, sf::Vertex{v.position, Default});
-                break;
+                origin.insert(end, sf::Vertex{v.position, Default}); break;
             } else {
                 beg++; end++;
             }
         }
     }
-    return Polygon::VArray{origin.begin(), origin.end()};
+    return std::move(VArray{origin.begin(), origin.end()});
 }
 
 
@@ -86,12 +89,11 @@ Polygon Polygon::cutBy(const VArray &scissor) {
             auto point = intersectionOf(vbeg, vdelta, pbeg, pdelta);
             if (point.x != -1 && point.y != -1) {
                 //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
-                point.x = ::round(point.x); point.y = ::round(point.y);
                 intersection.insert(sf::Vertex{point, Intersection});
             }
         }
     //std::map<pair<sf::Vertex, sf::Vertex>, std::vector<sf::Vertex>> segment[2];
-    std::map<pair<sf::Vertex, sf::Vertex>, VArray> segment[2];
+    std::map<Line, VArray> segment[2];
     return Polygon{insertInto(scissor, intersection)};
 }
 
@@ -113,9 +115,12 @@ Polygon& Polygon::SetTransform(const Transform &trans) {
 }
 
 void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
-    for (std::size_t i = 0; i + 1 < vertex.size(); i++)
+    for (auto &v: vertex) v.position = round(v.position);
+    /*
+    for (std::size_t i = 0; i + 1 < vertex.size(); i++) {
         target.draw(Line(vertex[i], vertex[i + 1]));
-
+    }
+    */
     std::map<float, list<Edge>> edgeTable;
     float lineEnd = 0;
     for (std::size_t i = 0; i + 1 < vertex.size(); i++) {
@@ -138,8 +143,8 @@ void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
         auto end = current.begin(); auto beg = end++;
         while (end != current.end()) {
             target.draw(Line(
-                sf::Vertex{sf::Vector2f(::round(beg->posX), lineY), Default},
-                sf::Vertex{sf::Vector2f(::round(end->posX), lineY), Default}));
+                sf::Vertex{sf::Vector2f(beg->posX, lineY), Default},
+                sf::Vertex{sf::Vector2f(end->posX, lineY), Default}));
             beg->posX += beg->delta; end->posX += end->delta;
             end++; if (end != current.end()) {beg = end; end++;}
         }
