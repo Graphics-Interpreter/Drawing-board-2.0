@@ -1,5 +1,6 @@
 #include <list>
 #include <iostream>
+#include <algorithm>
 #include <map>
 #include <set>
 #include <math.h>
@@ -47,30 +48,59 @@ namespace {
         auto deltaY = point.y - p.y, deltaX = point.x - p.x;
         //cout << std::abs(r.x * deltaY - r.y * deltaX) << endl;
         //cout << deltaX / r.x << endl;
-        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.05
+        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.1
             && 0 < deltaY / r.y && deltaY / r.y < 1
             && 0 < deltaX / r.x && deltaX / r.x < 1) return true;
         else return false;
     }
 
-}
-
-std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin, 
-    const std::set<sf::Vertex, Vfunc> &intersection) {
-    for (auto &v: origin) {
-        origin.push_back(v);
-        if (intersection.count(sf::Vertex{v.position, Intersection})) break;
+    void printV(const sf::Vector2f &v) {
+        std::cout << "(" << v.x << ", " << v.y << ")" << std::endl;
     }
 }
 
-Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, const std::set<sf::Vertex, Vfunc> &intersection) {
+std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin, 
+    const std::set<sf::Vector2f, Vfunc> &intersection) {
+    cout << endl;
+    auto predicate = [&](const sf::Vertex &v) {return intersection.count(v.position);};
+    for (auto v = ++origin.begin(); v != origin.end(); v++) {
+        origin.push_back(*v); if (predicate(*v)) break;
+    }
+    #ifdef DEBUG
+    for (auto &v: origin) printV(v.position);
+    cout << "--" << endl;
+    for (auto &v: intersection) printV(v);
+    #endif
+
+    std::map<Line, Polygon::VArray> res;
+    auto beg = origin.begin(), end = origin.begin();
+    if ((beg = std::find_if(origin.begin(), origin.end(), predicate)) != origin.end())
+        while ((end = std::find_if(beg + 1, origin.end(), predicate)) != origin.end()) {
+            #ifdef DEBUG
+            printV(beg->position);
+            #endif
+            for (auto ite = beg + 1; ite != end; ite++) {
+                res[Line{*beg, *end}].push_back(*ite);
+                #ifdef DEBUG
+                printV(ite->position);
+                #endif
+            }
+            #ifdef DEBUG
+            printV(end->position);
+            #endif
+            beg = end;
+        }
+    return res;
+}
+
+Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, 
+    const std::set<sf::Vector2f, Vfunc> &intersection) {
     std::list<sf::Vertex> origin{vertex.begin(), vertex.end()};
-    //for (size_t i = 0; i < intersection.size(); i++) {
     for (const auto &v: intersection) {
         auto end = origin.begin(); auto beg = end++;
         while (end != origin.end()) {
-            if (Collinear(beg->position, end->position - beg->position, v.position)) {
-                origin.insert(end, sf::Vertex{v.position, Default}); break;
+            if (Collinear(beg->position, end->position - beg->position, v)) {
+                origin.insert(end, sf::Vertex{v, Default}); break;
             } else {
                 beg++; end++;
             }
@@ -81,7 +111,7 @@ Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, const std::se
 
 
 Polygon Polygon::cutBy(const VArray &scissor) {
-    std::set<sf::Vertex, Vfunc> intersection(comp);
+    std::set<sf::Vector2f, Vfunc> intersection(comp);
     for (std::size_t vite = 0; vite + 1 < vertex.size(); vite++)
         for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
             auto vbeg = vertex[vite].position, vdelta = vertex[vite + 1].position - vertex[vite].position;
@@ -89,12 +119,13 @@ Polygon Polygon::cutBy(const VArray &scissor) {
             auto point = intersectionOf(vbeg, vdelta, pbeg, pdelta);
             if (point.x != -1 && point.y != -1) {
                 //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
-                intersection.insert(sf::Vertex{point, Intersection});
+                intersection.insert(point);
             }
         }
-    //std::map<pair<sf::Vertex, sf::Vertex>, std::vector<sf::Vertex>> segment[2];
-    std::map<Line, VArray> segment[2];
-    return Polygon{insertInto(scissor, intersection)};
+    std::map<Line, std::vector<sf::Vertex>> segment[2];
+    segment[0] = setSegment(insertInto(vertex, intersection), intersection);
+    segment[1] = setSegment(insertInto(scissor, intersection), intersection);
+    return Polygon{scissor};
 }
 
 sf::Vector2f Polygon::getCenter() {

@@ -9,7 +9,7 @@ class Line: public sf::Drawable {
 public:
     Line(const sf::Vertex &s, const sf::Vertex &e):Drawable{}, start(s), end(e) {}
 	~Line() {}
-	bool operator<(const Line &l) {
+	bool operator<(const Line &l) const {
 		return start.position.x < l.start.position.x || 
 			(l.start.position.x < start.position.x && start.position.y < l.start.position.y);
 	}
@@ -22,8 +22,8 @@ private:
 class Polygon: public sf::Drawable {
 public:
 	Polygon(const std::vector<sf::Vertex> &va):vertex{va} {
-		comp = [](const sf::Vertex &v1, const sf::Vertex &v2)->bool {
-		    return v1.position.x < v2.position.x || ((v2.position.x < v1.position.x) && v1.position.y < v2.position.y);
+		comp = [](const sf::Vector2f &v1, const sf::Vector2f &v2)->bool {
+		    return v1.x < v2.x || (!(v2.x < v1.x) && v1.y < v2.y);
 		};
 	}
 	Polygon(const Polygon &p):Drawable{}, comp{p.comp}, vertex{p.vertex} {}
@@ -36,9 +36,9 @@ public:
 	typedef std::vector<sf::Vertex> VArray;
 	sf::Vector2f getCenter();
 private:
-	typedef std::function<bool(const sf::Vertex &v1, const sf::Vertex &v2)> Vfunc;
-	VArray insertInto(const Polygon::VArray &vertex, const std::set<sf::Vertex, Vfunc> &intersection);
-	std::map<Line, VArray> setSegment(VArray origin, const std::set<sf::Vertex, Vfunc> &intersection);
+	typedef std::function<bool(const sf::Vector2f &v1, const sf::Vector2f &v2)> Vfunc;
+	VArray insertInto(const Polygon::VArray &vertex, const std::set<sf::Vector2f, Vfunc> &intersection);
+	std::map<Line, VArray> setSegment(VArray origin, const std::set<sf::Vector2f, Vfunc> &intersection);
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 	Vfunc comp;
 	mutable VArray vertex;
