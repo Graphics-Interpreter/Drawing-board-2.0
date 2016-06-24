@@ -61,37 +61,34 @@ namespace {
 
 std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin, 
     const std::set<sf::Vector2f, Vfunc> &intersection) {
-    cout << endl;
     auto predicate = [&](const sf::Vertex &v) {return intersection.count(v.position);};
     for (auto v = ++origin.begin(); v != origin.end(); v++) {
         origin.push_back(*v); if (predicate(*v)) break;
     }
-    #ifdef DEBUG
-    cout << "__ALL POINTS__" << endl;
-    for (auto &v: origin) printV(v.position);
-    cout << "________________" << endl;
-    cout << "__INTERSECTION__" << endl;
-    for (auto &v: intersection) printV(v);
-    cout << "________________" << endl;
-    #endif
 
     std::map<Line, Polygon::VArray> res;
     auto beg = origin.begin(), end = origin.begin();
     if ((beg = std::find_if(origin.begin(), origin.end(), predicate)) != origin.end())
         while ((end = std::find_if(beg + 1, origin.end(), predicate)) != origin.end()) {
+            /*
             #ifdef DEBUG
             cout << "+"; printV(beg->position);
             #endif
+            */
             // [beg, end - 1]
             for (auto ite = beg; ite != end; ite++) {
                 res[Line{*beg, *end}].push_back(*ite);
+                /*
                 #ifdef DEBUG
                 cout << "  "; printV(ite->position);
                 #endif
+                */
             }
+            /*
             #ifdef DEBUG
             cout << "-"; printV(end->position);
             #endif
+            */
             beg = end;
         }
     return res;
@@ -110,14 +107,25 @@ Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex,
             }
         }
     }
+    cout << "__ALL_POINTS___" << endl;
+    for (auto &v: origin) printV(v.position);
+    cout << "________________" << endl;
     return std::move(VArray{origin.begin(), origin.end()});
 }
 
-size_t Polygon::getStartIndex(const VArray& scissor, const sf::Vector2f &v) {
-    return 0;
+size_t Polygon::getStartIndex(const VArray& scissor, const sf::Vector2f &vbeg) {
+    sf::Vector2f vdelta; vdelta.x = 0; vdelta.y = -vbeg.y;
+    auto cnt = 0;
+    for (size_t i = 0; i + 1 < scissor.size(); i++) {
+        auto sbeg = scissor[i].position, sdelta = scissor[i + 1].position - scissor[i].position;
+        auto point = intersectionOf(vbeg, vdelta, sbeg, sdelta);
+        if (point.x != -1 && point.y != -1) cnt++;
+    }
+    if (cnt % 2) return 0;
+    else return 1;
 }
 
-Polygon Polygon::cutBy(const VArray &scissor) {
+std::set<sf::Vector2f, Polygon::Vfunc> Polygon::getIntersection(const VArray &scissor) {
     std::set<sf::Vector2f, Vfunc> intersection(comp);
     for (std::size_t vite = 0; vite + 1 < vertex.size(); vite++)
         for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
@@ -129,40 +137,68 @@ Polygon Polygon::cutBy(const VArray &scissor) {
                 intersection.insert(point);
             }
         }
-    std::map<Line, std::vector<sf::Vertex>> segment[2];
-    auto mixPoint = insertInto(vertex, intersection);
-    segment[0] = setSegment(mixPoint, intersection);
-    segment[1] = setSegment(insertInto(scissor, intersection), intersection);
+    return std::move(intersection);
+}
 
-    mixPoint.erase(remove_if(mixPoint.begin(), mixPoint.end(), 
-        [&](const sf::Vertex &v){return !intersection.count(v.position);}), mixPoint.end());
-    mixPoint.push_back(mixPoint.front());
+std::map<Line, Polygon::VArray> Polygon::getOrderSeg(const VArray &scissor, const VArray &correctOrder,
+    const std::set<sf::Vector2f, Vfunc> &intersection) {
+    auto sicssorPoint = insertInto(scissor, intersection);
+    auto intersectionBeg = find_if(sicssorPoint.begin(), sicssorPoint.end(), 
+        [&](const sf::Vertex &v) {return intersection.count(v.position);});
+    auto intersectionEnd = find_if(intersectionBeg + 1, sicssorPoint.end(), 
+        [&](const sf::Vertex &v) {return intersection.count(v.position);});
+
+    auto beg = find_if(correctOrder.begin(), correctOrder.end(), 
+        [&](const sf::Vertex &v) {return v.position == intersectionBeg->position;});
+    auto end = find_if(beg + 1, correctOrder.end(), 
+        [&](const sf::Vertex &v) {return v.position == intersectionEnd->position;});
 
     #ifdef DEBUG
-    cout << "___MIX_POINTS____" << endl;
-    for (auto &v: mixPoint) printV(v.position);
+    cout << "beg:"; printV(beg->position);
+    cout << "beg + 1:"; printV((beg + 1)->position);
+    cout << "end:"; printV(end->position);
+    #endif
+    if (beg + 1 != end) std::reverse(sicssorPoint.begin(), sicssorPoint.end());
+    return setSegment(sicssorPoint, intersection);
+}
+
+Polygon Polygon::cutBy(const VArray &scissor) {
+    auto intersection = getIntersection(scissor);
+    std::vector<std::map<Line, VArray>> segment(2);
+
+    auto correctOrder = insertInto(vertex, intersection);
+    segment[ORIGIN] = setSegment(correctOrder, intersection);
+    correctOrder.erase(remove_if(correctOrder.begin(), correctOrder.end(), 
+        [&](const sf::Vertex &v){return !intersection.count(v.position);}), correctOrder.end());
+    correctOrder.push_back(correctOrder.front());
+    #ifdef DEBUG
+    cout << "_CORRECT_POINTS__" << endl;
+    for (auto &v: correctOrder) printV(v.position);
     cout << "_________________" << endl;
     #endif
+    segment[SCISSOR] = getOrderSeg(scissor, correctOrder, intersection);
 
-    sf::Vector2f mid; Line tmpLine{mixPoint[0], mixPoint[1]};
-    if (segment[0][tmpLine].size() > 1) {
-        mid = segment[0][tmpLine][1].position;
+
+    sf::Vector2f mid; Line tmpLine{correctOrder[ORIGIN], correctOrder[SCISSOR]};
+    if (segment[ORIGIN][tmpLine].size() > 1) {
+        mid = segment[ORIGIN][tmpLine][SCISSOR].position;
     } else {
-        mid = mixPoint[0].position + mixPoint[1].position;
+        mid = correctOrder[ORIGIN].position + correctOrder[SCISSOR].position;
         mid.x /= 2; mid.y /= 2;
     }
 
-    size_t index = getStartIndex(vertex, mid);
+    size_t index = getStartIndex(scissor, mid);
     VArray res;
-    for (size_t mite = 0; mite + 1 < mixPoint.size(); mite++) {
-        Line tmpLine{mixPoint[mite], mixPoint[mite + 1]};
+    for (size_t mite = 0; mite + 1 < correctOrder.size(); mite++) {
+        Line tmpLine{correctOrder[mite], correctOrder[mite + 1]};
         res.insert(res.end(), segment[index][tmpLine].begin(), segment[index][tmpLine].end());
         index = 1 - index;
     }
     res.push_back(res.front());
     #ifdef DEBUG
-    cout << "______RES______" << endl;
+    cout << "____RESULT_______" << endl;
     for (auto v: res) printV(v.position);
+    cout << "_________________" << endl;
     #endif
     return Polygon{res};
 }

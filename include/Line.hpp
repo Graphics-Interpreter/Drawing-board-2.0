@@ -35,11 +35,17 @@ public:
 	Polygon& SetTransform(const sf::Transform &trans);
 	typedef std::vector<sf::Vertex> VArray;
 	sf::Vector2f getCenter();
+
 private:
 	typedef std::function<bool(const sf::Vector2f &v1, const sf::Vector2f &v2)> Vfunc;
+    static const size_t ORIGIN = 0, SCISSOR = 1;
+
 	VArray insertInto(const Polygon::VArray &vertex, const std::set<sf::Vector2f, Vfunc> &intersection);
 	std::map<Line, VArray> setSegment(VArray origin, const std::set<sf::Vector2f, Vfunc> &intersection);
+	std::map<Line, Polygon::VArray> getOrderSeg(const VArray &scissor, const VArray &correctOrder,
+	    const std::set<sf::Vector2f, Vfunc> &intersection);
 	size_t getStartIndex(const VArray& scissor, const sf::Vector2f &v);
+	std::set<sf::Vector2f, Vfunc> getIntersection(const VArray &scissor);
 
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 	Vfunc comp;
