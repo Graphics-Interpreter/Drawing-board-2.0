@@ -11,7 +11,7 @@ public:
 	~Line() {}
 	bool operator<(const Line &l) const {
 		return start.position.x < l.start.position.x || 
-			(l.start.position.x < start.position.x && start.position.y < l.start.position.y);
+			(!(l.start.position.x < start.position.x) && start.position.y < l.start.position.y);
 	}
 private:
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
@@ -39,6 +39,8 @@ private:
 	typedef std::function<bool(const sf::Vector2f &v1, const sf::Vector2f &v2)> Vfunc;
 	VArray insertInto(const Polygon::VArray &vertex, const std::set<sf::Vector2f, Vfunc> &intersection);
 	std::map<Line, VArray> setSegment(VArray origin, const std::set<sf::Vector2f, Vfunc> &intersection);
+	size_t getStartIndex(const VArray& scissor, const sf::Vector2f &v);
+
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 	Vfunc comp;
 	mutable VArray vertex;
@@ -46,4 +48,3 @@ private:
 
 const sf::Color Default = sf::Color::Red;
 const sf::Color Scissor = sf::Color::Blue;
-const sf::Color Intersection = sf::Color::Black;
