@@ -237,7 +237,7 @@ void Polygon::draw(sf::RenderTarget& target, sf::RenderStates states) const {
         while (end != current.end()) {
             target.draw(Line(
                 sf::Vertex{sf::Vector2f(beg->posX, lineY), Default},
-                sf::Vertex{sf::Vector2f(end->posX, lineY), Default}));
+                sf::Vertex{sf::Vector2f(end->posX, lineY), Default}), states);
             beg->posX += beg->delta; end->posX += end->delta;
             end++; if (end != current.end()) {beg = end; end++;}
         }

@@ -46,7 +46,7 @@ void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 
     sf::VertexArray vertex;
     for (auto &v: vec2) vertex.append(sf::Vertex{Op(reverse(v)), start.color});
-    target.draw(vertex);
+    target.draw(vertex, states);
 }
 
 std::shared_ptr<graphics::Shape> Line::cutBy(const std::vector<sf::Vertex> &scissor) {

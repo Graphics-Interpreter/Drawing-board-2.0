@@ -14,6 +14,7 @@ int main()
     std::vector<sf::Vertex> points;
     std::shared_ptr<graphics::Shape> ptr;
     sf::Color color = Default;
+    sf::Vector2f lastPosition;
     while (window.isOpen()) {
         // check all the window's events that were triggered since the last iteration of the loop
         sf::Event event;
@@ -25,8 +26,9 @@ int main()
                 if (event.mouseButton.button == sf::Mouse::Left) {
                     // A new loop
                     if (color == Default && ptr) ptr = nullptr;
-                    points.push_back(
-                        sf::Vertex{sf::Vector2f{(float)event.mouseButton.x, (float)event.mouseButton.y}, color});
+                    lastPosition = sf::Vector2f{static_cast<float>(event.mouseButton.x),
+                        static_cast<float>(event.mouseButton.y)};
+                    points.push_back(sf::Vertex{lastPosition, color});
                 } else if (event.mouseButton.button == sf::Mouse::Right) {
                     if (color == Default && points.size() > 2) {
                         points.push_back(points.front());
@@ -45,11 +47,15 @@ int main()
 
         // clear the window with black color
         window.clear(sf::Color::White);
-        if (ptr) window.draw(*ptr);
+        sf::Vector2f currentPosition{sf::Mouse::getPosition(window)};
+        if (ptr) {
+            sf::Transform tran = sf::Transform::Identity;
+            if (color == Default) tran.translate(currentPosition - lastPosition);
+            window.draw(*ptr, tran);
+        } 
         for (std::size_t i = 0; i + 1 < points.size(); i++)
             window.draw(Line(points[i], points[i + 1]));
 
-        sf::Vector2f currentPosition{sf::Mouse::getPosition(window)};
         if (!points.empty())
             window.draw(Line{points.back(), sf::Vertex{currentPosition, color}});
         window.display();
