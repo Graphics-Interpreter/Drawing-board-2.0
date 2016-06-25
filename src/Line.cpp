@@ -2,6 +2,7 @@
 #include <functional>
 using namespace std;
 using namespace sf;
+using namespace graphics;
 
 namespace {
 	vector<sf::Vector2f> DrawLine(sf::Vector2f start, sf::Vector2f end) {
@@ -46,4 +47,32 @@ void Line::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     sf::VertexArray vertex;
     for (auto &v: vec2) vertex.append(sf::Vertex{Op(reverse(v)), start.color});
     target.draw(vertex);
+}
+
+std::shared_ptr<graphics::Shape> Line::cutBy(const std::vector<sf::Vertex> &scissor) {
+    std::vector<sf::Vector2f> v;
+    for (std::size_t pite = 0; pite + 1 < scissor.size(); pite++) {
+        auto pbeg = scissor[pite].position, pdelta = scissor[pite + 1].position - scissor[pite].position;
+        auto point = intersectionOf(pbeg, pdelta, start.position, end.position - start.position);
+        if (point.x != -1 && point.y != -1) {
+            //cout << Collinear(vbeg, vdelta, point) << " " << Collinear(vbeg, vdelta, point) << endl;
+            v.push_back(point);
+        }
+    }
+    auto vstart = start; vstart.position = *v.begin();
+    auto vend = end; vend.position = *++v.begin();
+    return make_shared<Line>(vstart, vend);
+}
+
+sf::Vector2f graphics::Shape::intersectionOf(sf::Vector2f p, sf::Vector2f r, sf::Vector2f q, sf::Vector2f s) {
+    if (!crossProduct(r, s)) return sf::Vector2f{-1, -1};
+    auto t = crossProduct((q - p), s) / crossProduct(r, s);
+    auto u = crossProduct((q - p), r) / crossProduct(r, s);
+    if (0 <= t && t <= 1 && 0 <= u && u <= 1)
+        return sf::Vector2f{p.x + t * r.x, p.y + t * r.y};
+    return sf::Vector2f{-1, -1};    
+}
+
+float graphics::Shape::crossProduct(sf::Vector2f v, sf::Vector2f w) {
+    return v.x * w.y - v.y * w.x;
 }

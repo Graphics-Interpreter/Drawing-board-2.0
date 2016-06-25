@@ -8,6 +8,7 @@
 
 using namespace std;
 using namespace sf;
+using namespace graphics;
 
 namespace {
 	struct Edge {
@@ -28,20 +29,6 @@ namespace {
 
     inline sf::Vector2f round(const sf::Vector2f &p) { 
         return sf::Vector2f{(float)(int)(p.x + 0.5), (float)(int)(p.y + 0.5)};
-    }
-
-    float crossProduct(sf::Vector2f v, sf::Vector2f w) {
-        return v.x * w.y - v.y * w.x;
-    }
-
-    sf::Vector2f intersectionOf(sf::Vector2f p, sf::Vector2f r,
-        sf::Vector2f q, sf::Vector2f s) {
-        if (!crossProduct(r, s)) return sf::Vector2f{-1, -1};
-        auto t = crossProduct((q - p), s) / crossProduct(r, s);
-        auto u = crossProduct((q - p), r) / crossProduct(r, s);
-        if (0 <= t && t <= 1 && 0 <= u && u <= 1)
-            return sf::Vector2f{p.x + t * r.x, p.y + t * r.y};
-        return sf::Vector2f{-1, -1};    
     }
 
     bool Collinear(sf::Vector2f p, sf::Vector2f r, sf::Vector2f point) {
@@ -162,7 +149,7 @@ std::map<Line, Polygon::VArray> Polygon::getOrderSeg(const VArray &scissor, cons
     return setSegment(sicssorPoint, intersection);
 }
 
-Polygon Polygon::cutBy(const VArray &scissor) {
+std::shared_ptr<graphics::Shape> Polygon::cutBy(const VArray &scissor) {
     auto intersection = getIntersection(scissor);
     std::vector<std::map<Line, VArray>> segment(2);
 
@@ -200,7 +187,7 @@ Polygon Polygon::cutBy(const VArray &scissor) {
     for (auto v: res) printV(v.position);
     cout << "_________________" << endl;
     #endif
-    return Polygon{res};
+    return make_shared<Polygon>(res);
 }
 
 sf::Vector2f Polygon::getCenter() {
