@@ -15,7 +15,7 @@ namespace {
 	public:
 		Edge(float x, float d, float sy, float y)
 			:posX(x), startY(sy), endY(y), delta(d) {}
-        float posX; // current X 
+        float posX; // current X
 		float startY, endY;
 		float delta;
 	};
@@ -27,18 +27,8 @@ namespace {
 		return Edge{smallp.x, (bigp.x - smallp.x) / (bigp.y - smallp.y), smallp.y, bigp.y};
 	}
 
-    inline sf::Vector2f round(const sf::Vector2f &p) { 
+    inline sf::Vector2f round(const sf::Vector2f &p) {
         return sf::Vector2f{(float)(int)(p.x + 0.5), (float)(int)(p.y + 0.5)};
-    }
-
-    bool Collinear(sf::Vector2f p, sf::Vector2f r, sf::Vector2f point) {
-        auto deltaY = point.y - p.y, deltaX = point.x - p.x;
-        //cout << std::abs(r.x * deltaY - r.y * deltaX) << endl;
-        //cout << deltaX / r.x << endl;
-        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.1
-            && 0 < deltaY / r.y && deltaY / r.y < 1
-            && 0 < deltaX / r.x && deltaX / r.x < 1) return true;
-        else return false;
     }
 
     void printV(const sf::Vector2f &v) {
@@ -46,7 +36,7 @@ namespace {
     }
 }
 
-std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin, 
+std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin,
     const std::set<sf::Vector2f, Vfunc> &intersection) {
     auto predicate = [&](const sf::Vertex &v) {return intersection.count(v.position);};
     for (auto v = ++origin.begin(); v != origin.end(); v++) {
@@ -81,7 +71,7 @@ std::map<Line, Polygon::VArray> Polygon::setSegment(VArray origin,
     return res;
 }
 
-Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex, 
+Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex,
     const std::set<sf::Vector2f, Vfunc> &intersection) {
     std::list<sf::Vertex> origin{vertex.begin(), vertex.end()};
     for (const auto &v: intersection) {
@@ -94,9 +84,11 @@ Polygon::VArray Polygon::insertInto(const Polygon::VArray &vertex,
             }
         }
     }
+    #ifdef DEBUG
     cout << "__ALL_POINTS___" << endl;
     for (auto &v: origin) printV(v.position);
     cout << "________________" << endl;
+    #endif
     return std::move(VArray{origin.begin(), origin.end()});
 }
 
@@ -130,14 +122,14 @@ std::set<sf::Vector2f, Polygon::Vfunc> Polygon::getIntersection(const VArray &sc
 std::map<Line, Polygon::VArray> Polygon::getOrderSeg(const VArray &scissor, const VArray &correctOrder,
     const std::set<sf::Vector2f, Vfunc> &intersection) {
     auto sicssorPoint = insertInto(scissor, intersection);
-    auto intersectionBeg = find_if(sicssorPoint.begin(), sicssorPoint.end(), 
+    auto intersectionBeg = find_if(sicssorPoint.begin(), sicssorPoint.end(),
         [&](const sf::Vertex &v) {return intersection.count(v.position);});
-    auto intersectionEnd = find_if(intersectionBeg + 1, sicssorPoint.end(), 
+    auto intersectionEnd = find_if(intersectionBeg + 1, sicssorPoint.end(),
         [&](const sf::Vertex &v) {return intersection.count(v.position);});
 
-    auto beg = find_if(correctOrder.begin(), correctOrder.end(), 
+    auto beg = find_if(correctOrder.begin(), correctOrder.end(),
         [&](const sf::Vertex &v) {return v.position == intersectionBeg->position;});
-    auto end = find_if(beg + 1, correctOrder.end(), 
+    auto end = find_if(beg + 1, correctOrder.end(),
         [&](const sf::Vertex &v) {return v.position == intersectionEnd->position;});
 
     #ifdef DEBUG
@@ -155,7 +147,7 @@ std::shared_ptr<graphics::Shape> Polygon::cutBy(const VArray &scissor) {
 
     auto correctOrder = insertInto(vertex, intersection);
     segment[ORIGIN] = setSegment(correctOrder, intersection);
-    correctOrder.erase(remove_if(correctOrder.begin(), correctOrder.end(), 
+    correctOrder.erase(remove_if(correctOrder.begin(), correctOrder.end(),
         [&](const sf::Vertex &v){return !intersection.count(v.position);}), correctOrder.end());
     correctOrder.push_back(correctOrder.front());
     #ifdef DEBUG

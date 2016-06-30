@@ -1,7 +1,9 @@
-#pragma once
+#ifndef _LINE_HPP_
+#define _LINE_HPP_
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <cmath>
 #include <functional>
 #include <set>
 #include <SFML/Graphics.hpp>
@@ -13,22 +15,54 @@ namespace graphics {
 	protected:
 		sf::Vector2f intersectionOf(sf::Vector2f p, sf::Vector2f r, sf::Vector2f q, sf::Vector2f s);
 		float crossProduct(sf::Vector2f v, sf::Vector2f w);
+    bool Collinear(sf::Vector2f p, sf::Vector2f r, sf::Vector2f point) {
+        auto deltaY = point.y - p.y, deltaX = point.x - p.x;
+        //cout << std::abs(r.x * deltaY - r.y * deltaX) << endl;
+        //cout << deltaX / r.x << endl;
+        if (std::abs(r.x * deltaY - r.y * deltaX) < 0.1
+            && 0 < deltaY / r.y && deltaY / r.y < 1
+            && 0 < deltaX / r.x && deltaX / r.x < 1) return true;
+        else return false;
+    }
 	};
 
 	class Line: public Shape {
 	public:
-	    Line(const sf::Vertex &s, const sf::Vertex &e):Shape{}, start(s), end(e) {}
+    Line(const sf::Vertex &s, const sf::Vertex &e):Shape{}, start(s), end(e) {}
 		~Line() {}
 		std::shared_ptr<Shape> cutBy(const std::vector<sf::Vertex> &points) override;
 		bool operator<(const Line &l) const {
-			return start.position.x < l.start.position.x || 
+		return start.position.x < l.start.position.x ||
 				(!(l.start.position.x < start.position.x) && start.position.y < l.start.position.y);
 		}
 	private:
-	    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-	    mutable sf::Vertex start, end;
+    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+		std::vector<sf::Vector2f> DrawSimpleLine(sf::Vector2f start, sf::Vector2f end) const;
+    mutable sf::Vertex start, end;
 	};
 
+	class Circle: public Shape {
+		public:
+			Circle(const sf::Vertex &beg, const sf::Vertex &end) {
+				auto point = beg.position + end.position; point.x /= 2, point.y /= 2;
+				center.position = point, center.color = beg.color;
+				radius = distance(beg.position, end.position) / 2;
+			}
+			Circle(const sf::Vertex &c, double r):center{c}, radius{r} {}
+			~Circle(){}
+			std::shared_ptr<Shape> cutBy(const std::vector<sf::Vertex> &points) override;
+		private:
+			std::vector<sf::Vector2f> Reverse(const std::vector<sf::Vector2f> &origin,
+				const std::function<sf::Vector2f(sf::Vector2f)> &func) const;
+			double distance(const sf::Vector2f &v1, const sf::Vector2f &v2) const {
+				return std::sqrt(std::pow(v1.x - v2.x, 2) + std::pow(v1.y - v2.y, 2));
+			}
+	    virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+			std::vector<sf::Vector2f> DrawSimpleCircle(double radius) const;
+	    mutable sf::Vertex center;
+			mutable double radius;
+			mutable std::vector<sf::Vector2f> circle;
+	};
 
 	class Polygon: public Shape {
 	public:
@@ -66,3 +100,4 @@ namespace graphics {
 	const sf::Color Default = sf::Color::Red;
 	const sf::Color Scissor = sf::Color::Blue;
 }
+#endif

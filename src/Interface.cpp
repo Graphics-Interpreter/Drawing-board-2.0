@@ -34,14 +34,15 @@ int main()
                         points.push_back(points.front());
                         ptr = make_shared<Polygon>(points);
                     } else if (color == Default && points.size() == 2) {
-                        ptr = make_shared<Line>(*points.begin(), *++points.begin());
+                        //ptr = make_shared<Line>(*points.begin(), *++points.begin());
+                        ptr = make_shared<Circle>(*points.begin(), *++points.begin());
                     } else {
                         points.push_back(points.front());
                         ptr = ptr->cutBy(points);
                     }
-                    if (color == Default) color = Scissor; else color = Default; 
+                    if (color == Default) color = Scissor; else color = Default;
                     points.clear();
-                } 
+                }
             }
         }
 
@@ -52,7 +53,7 @@ int main()
             sf::Transform tran = sf::Transform::Identity;
             if (color == Default) tran.translate(currentPosition - lastPosition);
             window.draw(*ptr, tran);
-        } 
+        }
         for (std::size_t i = 0; i + 1 < points.size(); i++)
             window.draw(Line(points[i], points[i + 1]));
 
